@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Front Wars — DumbAIGames.com</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a1a;--bg2:#0f0f1f;--bg3:#14142a;--bg4:#1a1a30;
+  --accent:#6c63ff;--accent2:#00d4ff;--accent3:#a855f7;
+  --text:#e8e8f0;--text2:#9999b0;
+  --border:rgba(255,255,255,.08);
+  --radius:12px;
+}
+html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+
+/* ========== MENU ========== */
+#menuScreen{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 0%,rgba(108,99,255,.2) 0%,transparent 60%),var(--bg);
+  z-index:100;overflow-y:auto;padding:40px 20px;
+}
+.menu-badge{background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.4);color:var(--accent2);
+  padding:6px 18px;border-radius:50px;font-size:.8rem;font-weight:700;letter-spacing:1px;margin-bottom:16px}
+.menu-title{font-size:clamp(3rem,8vw,6rem);font-weight:900;letter-spacing:-2px;
+  background:linear-gradient(135deg,#fff 0%,#6c63ff 50%,#00d4ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:8px;text-align:center}
+.menu-sub{color:var(--text2);font-size:1.05rem;margin-bottom:40px;text-align:center}
+.map-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:900px;width:100%}
+.map-btn{
+  background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px 20px;cursor:pointer;transition:all .25s;text-align:left;
+  display:flex;flex-direction:column;gap:8px;
+}
+.map-btn:hover{border-color:rgba(108,99,255,.5);background:var(--bg4);transform:translateY(-4px);box-shadow:0 16px 40px rgba(108,99,255,.2)}
+.map-btn .map-icon{font-size:2rem;margin-bottom:4px}
+.map-btn .map-name{font-size:1.1rem;font-weight:800;color:#fff}
+.map-btn .map-nations{font-size:.8rem;color:var(--text2)}
+.map-btn .map-count{display:inline-block;background:rgba(108,99,255,.2);color:var(--accent);
+  padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:700;margin-top:4px}
+
+/* ========== GAME SCREEN ========== */
+#gameScreen{
+  position:absolute;inset:0;display:none;flex-direction:column;
+  background:var(--bg);overflow:hidden;
+}
+/* Top bar */
+#topBar{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  flex-shrink:0;flex-wrap:wrap;
+}
+.stat-pill{
+  display:flex;align-items:center;gap:6px;background:var(--bg3);
+  border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.85rem;font-weight:600;
+}
+.stat-pill .stat-icon{font-size:1rem}
+.stat-pill .stat-val{color:#fff;font-weight:800}
+#phaseBadge{
+  margin-left:auto;padding:6px 16px;border-radius:20px;font-size:.8rem;font-weight:800;letter-spacing:1px;
+}
+.phase-expand{background:rgba(0,212,255,.15);color:#00d4ff;border:1px solid rgba(0,212,255,.4)}
+.phase-combat{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.4)}
+#btnMenu{
+  background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text2);
+  padding:6px 16px;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;
+  transition:all .2s;margin-left:8px;
+}
+#btnMenu:hover{background:rgba(255,255,255,.1);color:#fff}
+#mapName{font-size:.85rem;color:var(--text2);font-weight:600}
+
+/* Canvas wrapper */
+#canvasWrap{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative;min-height:0;
+}
+#gameCanvas{display:block;cursor:crosshair;image-rendering:pixelated}
+
+/* Bottom panels */
+#bottomPanel{
+  display:flex;gap:0;height:180px;flex-shrink:0;
+  border-top:1px solid var(--border);background:var(--bg2);
+}
+.panel{flex:1;padding:12px 14px;overflow-y:auto;border-right:1px solid var(--border)}
+.panel:last-child{border-right:none}
+.panel-title{font-size:.75rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+  color:var(--accent2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+/* Country list */
+.country-row{
+  display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;
+  font-size:.78rem;margin-bottom:2px;transition:background .2s;cursor:pointer;
+}
+.country-row:hover{background:rgba(255,255,255,.05)}
+.country-row.eliminated{opacity:.35}
+.country-row .cr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.country-row .cr-name{flex:1;font-weight:600}
+.country-row .cr-troops{color:var(--text2);font-size:.75rem}
+.country-row .cr-ally{font-size:.7rem;color:#4ade80}
+/* Action panel */
+#actionPanel{flex:1.2}
+.action-info{font-size:.82rem;color:var(--text2);margin-bottom:10px;line-height:1.5}
+.action-info strong{color:#fff}
+.btn-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.act-btn{
+  padding:6px 14px;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;
+  border:1px solid;transition:all .2s;
+}
+.act-btn-attack{background:rgba(239,68,68,.15);color:#f87171;border-color:rgba(239,68,68,.4)}
+.act-btn-attack:hover{background:rgba(239,68,68,.3)}
+.act-btn-fortify{background:rgba(251,191,36,.15);color:#fbbf24;border-color:rgba(251,191,36,.4)}
+.act-btn-fortify:hover{background:rgba(251,191,36,.3)}
+.act-btn-ally{background:rgba(74,222,128,.15);color:#4ade80;border-color:rgba(74,222,128,.4)}
+.act-btn-ally:hover{background:rgba(74,222,128,.3)}
+.act-btn-donate{background:rgba(108,99,255,.15);color:#a78bfa;border-color:rgba(108,99,255,.4)}
+.act-btn-donate:hover{background:rgba(108,99,255,.3)}
+/* War log */
+.log-entry{font-size:.75rem;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);line-height:1.4}
+.log-attack{color:#fca5a5}
+.log-capture{color:#fbbf24}
+.log-eliminate{color:#f87171}
+.log-ally{color:#4ade80}
+.log-expand{color:var(--text2)}
+.log-win{color:#00d4ff;font-weight:800}
+.log-info{color:var(--text2)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+
+/* Win overlay */
+#winOverlay{
+  position:absolute;inset:0;background:rgba(0,0,0,.85);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  z-index:200;
+}
+#winOverlay h2{font-size:3rem;font-weight:900;background:linear-gradient(135deg,#fbbf24,#f59e0b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+#winOverlay p{color:var(--text2);font-size:1.1rem;margin-bottom:32px}
+.win-btn{background:linear-gradient(135deg,#6c63ff,#00d4ff);color:#fff;
+  padding:14px 36px;border-radius:50px;font-weight:800;font-size:1rem;cursor:pointer;
+  border:none;transition:transform .2s}
+.win-btn:hover{transform:scale(1.05)}
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div id="menuScreen">
+  <div class="menu-badge">⚔️ TERRITORY STRATEGY</div>
+  <div class="menu-title">FRONT WARS</div>
+  <div class="menu-sub">Expand, conquer, and dominate. Pick your battlefield.</div>
+  <div class="map-grid" id="mapGrid"></div>
+</div>
+
+<!-- GAME -->
+<div id="gameScreen">
+  <div id="topBar">
+    <div class="stat-pill"><span class="stat-icon">⚔️</span><span>Troops:</span><span class="stat-val" id="statTroops">0</span></div>
+    <div class="stat-pill"><span class="stat-icon">🗺️</span><span>Territory:</span><span class="stat-val" id="statTerritory">0</span></div>
+    <div class="stat-pill"><span class="stat-icon">🤝</span><span>Allies:</span><span class="stat-val" id="statAllies">0</span></div>
+    <div class="stat-pill"><span class="stat-icon">👑</span><span>Countries Left:</span><span class="stat-val" id="statCountries">0</span></div>
+    <span id="mapName"></span>
+    <span id="phaseBadge" class="phase-expand">EXPANDING</span>
+    <button id="btnMenu">← Menu</button>
+  </div>
+  <div id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+    <div id="winOverlay">
+      <h2>🏆 VICTORY!</h2>
+      <p id="winMsg">You conquered the map!</p>
+      <button class="win-btn" onclick="goMenu()">Play Again</button>
+    </div>
+  </div>
+  <div id="bottomPanel">
+    <div class="panel" id="countryListPanel">
+      <div class="panel-title">🌍 Countries</div>
+      <div id="countryList"></div>
+    </div>
+    <div class="panel" id="actionPanel">
+      <div class="panel-title">⚡ Actions</div>
+      <div class="action-info" id="actionInfo">Click a cell on the map to see options.</div>
+      <div class="btn-row" id="actionBtns"></div>
+    </div>
+    <div class="panel" id="warLogPanel">
+      <div class="panel-title">📜 War Log</div>
+      <div id="warLog"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+//  DATA
+// =====================================================================
+const ALL_COUNTRIES = [
+  {id:'usa',        name:'USA',          color:'#3b82f6', sx:22, sy:24},
+  {id:'canada',     name:'Canada',       color:'#93c5fd', sx:18, sy:12},
+  {id:'mexico',     name:'Mexico',       color:'#34d399', sx:20, sy:31},
+  {id:'brazil',     name:'Brazil',       color:'#22c55e', sx:34, sy:42},
+  {id:'argentina',  name:'Argentina',    color:'#4ade80', sx:30, sy:52},
+  {id:'colombia',   name:'Colombia',     color:'#86efac', sx:27, sy:37},
+  {id:'peru',       name:'Peru',         color:'#16a34a', sx:26, sy:44},
+  {id:'uk',         name:'UK',           color:'#c084fc', sx:51, sy:17},
+  {id:'france',     name:'France',       color:'#a78bfa', sx:53, sy:21},
+  {id:'germany',    name:'Germany',      color:'#8b5cf6', sx:56, sy:18},
+  {id:'spain',      name:'Spain',        color:'#7c3aed', sx:50, sy:23},
+  {id:'italy',      name:'Italy',        color:'#6d28d9', sx:56, sy:23},
+  {id:'ukraine',    name:'Ukraine',      color:'#ddd6fe', sx:62, sy:19},
+  {id:'sweden',     name:'Sweden',       color:'#ede9fe', sx:58, sy:12},
+  {id:'russia',     name:'Russia',       color:'#dc2626', sx:82, sy:13},
+  {id:'turkey',     name:'Turkey',       color:'#f97316', sx:65, sy:24},
+  {id:'saudi',      name:'Saudi Arabia', color:'#fbbf24', sx:67, sy:30},
+  {id:'egypt',      name:'Egypt',        color:'#fcd34d', sx:63, sy:28},
+  {id:'nigeria',    name:'Nigeria',      color:'#d97706', sx:56, sy:37},
+  {id:'ethiopia',   name:'Ethiopia',     color:'#b45309', sx:67, sy:37},
+  {id:'southafrica',name:'S. Africa',    color:'#92400e', sx:62, sy:50},
+  {id:'algeria',    name:'Algeria',      color:'#78350f', sx:54, sy:27},
+  {id:'drc',        name:'DR Congo',     color:'#a16207', sx:61, sy:42},
+  {id:'china',      name:'China',        color:'#ef4444', sx:87, sy:25},
+  {id:'india',      name:'India',        color:'#f87171', sx:78, sy:31},
+  {id:'japan',      name:'Japan',        color:'#fca5a5', sx:97, sy:22},
+  {id:'indonesia',  name:'Indonesia',    color:'#fb923c', sx:90, sy:38},
+  {id:'pakistan',   name:'Pakistan',     color:'#fdba74', sx:74, sy:27},
+  {id:'vietnam',    name:'Vietnam',      color:'#fed7aa', sx:88, sy:32},
+  {id:'australia',  name:'Australia',    color:'#f59e0b', sx:92, sy:47},
+  {id:'newzealand', name:'New Zealand',  color:'#fbbf24', sx:101,sy:54},
+];
+
+const MAP_DEFS = [
+  {key:'world',     label:'World',       emoji:'🌍', ids:ALL_COUNTRIES.map(c=>c.id), W:120, H:65, cell:8},
+  {key:'namerica',  label:'North America',emoji:'🌎', ids:['usa','canada','mexico'],             W:70, H:55, cell:10},
+  {key:'samerica',  label:'South America',emoji:'🌎', ids:['brazil','argentina','colombia','peru'],W:60,H:55,cell:10},
+  {key:'europe',    label:'Europe',       emoji:'🌍', ids:['uk','france','germany','spain','italy','ukraine','sweden'],W:70,H:55,cell:10},
+  {key:'africa',    label:'Africa',       emoji:'🌍', ids:['algeria','egypt','nigeria','ethiopia','drc','southafrica'],W:65,H:60,cell:10},
+  {key:'asia',      label:'Asia',         emoji:'🌏', ids:['russia','turkey','saudi','pakistan','india','china','vietnam','indonesia','japan'],W:90,H:60,cell:8},
+  {key:'oceania',   label:'Oceania',      emoji:'🌏', ids:['australia','newzealand','indonesia'],W:65,H:55,cell:10},
+];
+
+// =====================================================================
+//  MENU BUILD
+// =====================================================================
+const mapGrid = document.getElementById('mapGrid');
+MAP_DEFS.forEach(m=>{
+  const btn = document.createElement('div');
+  btn.className = 'map-btn';
+  const names = m.ids.map(id=>ALL_COUNTRIES.find(c=>c.id===id).name).join(', ');
+  btn.innerHTML = `
+    <div class="map-icon">${m.emoji}</div>
+    <div class="map-name">${m.label}</div>
+    <div class="map-nations">${names}</div>
+    <div class="map-count">${m.ids.length} countries</div>`;
+  btn.onclick = ()=>startGame(m.key);
+  mapGrid.appendChild(btn);
+});
+
+// =====================================================================
+//  GAME STATE
+// =====================================================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let G = null; // global game state
+let intervals = [];
+let rafId = null;
+
+function clearAll(){
+  intervals.forEach(clearInterval);
+  intervals = [];
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+}
+
+function goMenu(){
+  clearAll();
+  document.getElementById('gameScreen').style.display='none';
+  document.getElementById('menuScreen').style.display='flex';
+  document.getElementById('winOverlay').style.display='none';
+}
+document.getElementById('btnMenu').onclick = goMenu;
+
+// =====================================================================
+//  GAME INIT
+// =====================================================================
+function startGame(mapKey){
+  clearAll();
+  const mapDef = MAP_DEFS.find(m=>m.key===mapKey);
+  const W = mapDef.W, H = mapDef.H, CELL = mapDef.cell;
+
+  // Scale country positions to fit this map
+  const rawCountries = mapDef.ids.map(id=>ALL_COUNTRIES.find(c=>c.id===id));
+  const minX = Math.min(...rawCountries.map(c=>c.sx));
+  const maxX = Math.max(...rawCountries.map(c=>c.sx));
+  const minY = Math.min(...rawCountries.map(c=>c.sy));
+  const maxY = Math.max(...rawCountries.map(c=>c.sy));
+  const PAD = 6;
+  const usableW = W - PAD*2;
+  const usableH = H - PAD*2;
+  const rangeX = maxX - minX || 1;
+  const rangeY = maxY - minY || 1;
+
+  const countries = {};
+  rawCountries.forEach(c=>{
+    let sx = Math.round(PAD + (c.sx - minX) / rangeX * usableW);
+    let sy = Math.round(PAD + (c.sy - minY) / rangeY * usableH);
+    // clamp
+    sx = Math.max(PAD, Math.min(W-PAD-1, sx));
+    sy = Math.max(PAD, Math.min(H-PAD-1, sy));
+    countries[c.id] = {
+      id: c.id,
+      name: c.name,
+      color: c.color,
+      sx, sy,          // scaled capital position
+      troops: 20,
+      territory: 0,
+      alive: true,
+      isPlayer: c.id === mapDef.ids[0],
+      allies: new Set(),
+    };
+  });
+
+  // Grid: 0 = unclaimed, else country id string
+  const grid = new Array(W*H).fill(null);
+
+  // Seed each country at its capital
+  const bfsQueues = {}; // id -> [{x,y}]
+  Object.values(countries).forEach(c=>{
+    grid[c.sy*W + c.sx] = c.id;
+    c.territory = 1;
+    bfsQueues[c.id] = [{x:c.sx, y:c.sy}];
+  });
+
+  const DIRS = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+
+  // "visited frontier" — next cells to expand per country
+  const frontiers = {}; // id -> array of {x,y}
+  Object.values(countries).forEach(c=>{
+    frontiers[c.id] = [];
+    DIRS.forEach(d=>{
+      const nx=c.sx+d.x, ny=c.sy+d.y;
+      if(nx>=0&&nx<W&&ny>=0&&ny<H) frontiers[c.id].push({x:nx,y:ny});
+    });
+  });
+
+  // defense bonus map
+  const defense = new Float32Array(W*H).fill(0);
+
+  // selected cell
+  let selectedX = -1, selectedY = -1;
+  let phase = 'expand'; // 'expand' | 'combat'
+
+  // Find player
+  const playerKey = mapDef.ids[0];
+
+  G = {mapDef, W, H, CELL, countries, grid, frontiers, defense,
+       phase, playerKey, selectedX, selectedY,
+       totalCells: W*H, filledCells: Object.values(countries).length};
+
+  // Canvas size
+  canvas.width = W * CELL;
+  canvas.height = H * CELL;
+
+  // Show game screen
+  document.getElementById('menuScreen').style.display='none';
+  const gs = document.getElementById('gameScreen');
+  gs.style.display='flex';
+  document.getElementById('mapName').textContent = '📍 '+mapDef.label;
+
+  // ---- EXPANSION PHASE ----
+  const expandIv = setInterval(()=>{
+    if(G.phase !== 'expand') return;
+    expandStep();
+    const pct = G.filledCells / G.totalCells;
+    if(pct >= 0.99) startCombat();
+  }, 80);
+  intervals.push(expandIv);
+
+  // ---- TROOP GENERATION ----
+  const troopIv = setInterval(()=>{
+    if(G.phase !== 'combat') return;
+    Object.values(G.countries).forEach(c=>{
+      if(!c.alive) return;
+      c.troops += Math.max(1, Math.floor(c.territory / 20));
+    });
+    updateUI();
+  }, 2000);
+  intervals.push(troopIv);
+
+  // ---- BOT AI ----
+  const botIv = setInterval(()=>{
+    if(G.phase !== 'combat') return;
+    botAttack();
+  }, 3000);
+  intervals.push(botIv);
+
+  // ---- RENDER LOOP ----
+  function loop(){
+    render();
+    updateUI();
+    rafId = requestAnimationFrame(loop);
+  }
+  rafId = requestAnimationFrame(loop);
+
+  // canvas click
+  canvas.onclick = handleCanvasClick;
+}
+
+// =====================================================================
+//  EXPANSION
+// =====================================================================
+function expandStep(){
+  const {W,H,grid,frontiers,countries} = G;
+  const DIRS = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+  const ids = Object.keys(countries);
+  // shuffle for fairness
+  for(let i=ids.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [ids[i],ids[j]]=[ids[j],ids[i]];
+  }
+  ids.forEach(id=>{
+    const c = countries[id];
+    if(!c.alive || frontiers[id].length===0) return;
+    // pick a random frontier cell
+    const idx = Math.floor(Math.random()*frontiers[id].length);
+    const {x,y} = frontiers[id].splice(idx,1)[0];
+    if(x<0||x>=W||y<0||y>=H) return;
+    if(grid[y*W+x] !== null) return; // taken
+    grid[y*W+x] = id;
+    c.territory++;
+    G.filledCells++;
+    // add neighbors to frontier
+    DIRS.forEach(d=>{
+      const nx=x+d.x, ny=y+d.y;
+      if(nx>=0&&nx<W&&ny>=0&&ny<H && grid[ny*W+nx]===null){
+        frontiers[id].push({x:nx,y:ny});
+      }
+    });
+  });
+}
+
+// =====================================================================
+//  COMBAT START
+// =====================================================================
+function startCombat(){
+  G.phase = 'combat';
+  document.getElementById('phaseBadge').className='phase-combat';
+  document.getElementById('phaseBadge').textContent='⚔️ COMBAT';
+  addLog('Combat phase begins! Attack your neighbors.','log-win');
+}
+
+// =====================================================================
+//  RENDER
+// =====================================================================
+function render(){
+  const {W,H,CELL,grid,countries,defense,selectedX,selectedY} = G;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const OCEAN = '#0d1b2a';
+
+  // Draw cells
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      const id = grid[y*W+x];
+      if(!id){
+        ctx.fillStyle = OCEAN;
+      } else {
+        const c = countries[id];
+        ctx.fillStyle = c.alive ? c.color : '#333';
+      }
+      ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+
+      // defense shimmer
+      if(id && defense[y*W+x]>0){
+        ctx.fillStyle = `rgba(251,191,36,${Math.min(0.3, defense[y*W+x]*0.05)})`;
+        ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+      }
+    }
+  }
+
+  // Draw borders (thin black lines between different territories)
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = 0.5;
+  const DIRS4 = [{x:1,y:0},{x:0,y:1}];
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      const id = grid[y*W+x];
+      DIRS4.forEach(({x:dx,y:dy})=>{
+        const nx=x+dx,ny=y+dy;
+        if(nx<W&&ny<H){
+          const nid = grid[ny*W+nx];
+          if(id !== nid && (id||nid)){
+            ctx.beginPath();
+            if(dx===1){ctx.moveTo((x+1)*CELL,y*CELL);ctx.lineTo((x+1)*CELL,(y+1)*CELL)}
+            else{ctx.moveTo(x*CELL,(y+1)*CELL);ctx.lineTo((x+1)*CELL,(y+1)*CELL)}
+            ctx.stroke();
+          }
+        }
+      });
+    }
+  }
+
+  // Draw capital dots & labels
+  Object.values(countries).forEach(c=>{
+    if(!c.alive) return;
+    const px = c.sx*CELL + CELL/2;
+    const py = c.sy*CELL + CELL/2;
+    // dot
+    ctx.beginPath();
+    ctx.arc(px,py,CELL*0.9,0,Math.PI*2);
+    ctx.fillStyle='#fff';
+    ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.7)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+    // label
+    ctx.fillStyle='#fff';
+    ctx.font=`bold ${Math.max(8,CELL*0.85)}px Inter,sans-serif`;
+    ctx.textAlign='center';
+    ctx.textBaseline='bottom';
+    // shadow
+    ctx.shadowColor='rgba(0,0,0,0.9)';
+    ctx.shadowBlur=3;
+    ctx.fillText(c.name, px, py - CELL);
+    ctx.shadowBlur=0;
+  });
+
+  // Selected cell highlight
+  if(G.selectedX>=0 && G.selectedY>=0){
+    ctx.strokeStyle='#fff';
+    ctx.lineWidth=2;
+    ctx.strokeRect(G.selectedX*CELL+1, G.selectedY*CELL+1, CELL-2, CELL-2);
+  }
+}
+
+// =====================================================================
+//  UI UPDATE
+// =====================================================================
+function updateUI(){
+  const {countries,playerKey,phase} = G;
+  const p = countries[playerKey];
+  if(!p||!p.alive) return;
+
+  document.getElementById('statTroops').textContent = Math.floor(p.troops);
+  document.getElementById('statTerritory').textContent = p.territory;
+  document.getElementById('statAllies').textContent = p.allies.size;
+  const alive = Object.values(countries).filter(c=>c.alive).length;
+  document.getElementById('statCountries').textContent = alive;
+
+  // country list
+  const cl = document.getElementById('countryList');
+  cl.innerHTML='';
+  Object.values(countries).sort((a,b)=>b.territory-a.territory).forEach(c=>{
+    const row = document.createElement('div');
+    row.className = 'country-row'+(c.alive?'':' eliminated');
+    const isAlly = p.allies.has(c.id);
+    const isPlayer = c.id===playerKey;
+    row.innerHTML=`
+      <div class="cr-dot" style="background:${c.color}"></div>
+      <div class="cr-name">${c.name}${isPlayer?' 👤':''}${isAlly?' 🤝':''}</div>
+      <div class="cr-troops">${c.alive?Math.floor(c.troops)+' ⚔️':'☠️'}</div>`;
+    row.onclick=()=>clickCountry(c.id);
+    cl.appendChild(row);
+  });
+}
+
+// =====================================================================
+//  CANVAS CLICK
+// =====================================================================
+function handleCanvasClick(e){
+  if(G.phase!=='combat') return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const cx = Math.floor((e.clientX - rect.left)*scaleX / G.CELL);
+  const cy = Math.floor((e.clientY - rect.top)*scaleY / G.CELL);
+  if(cx<0||cx>=G.W||cy<0||cy>=G.H) return;
+  G.selectedX = cx;
+  G.selectedY = cy;
+  showCellActions(cx,cy);
+}
+
+function showCellActions(cx,cy){
+  const {grid,countries,playerKey,defense,W} = G;
+  const id = grid[cy*W+cx];
+  const info = document.getElementById('actionInfo');
+  const btns = document.getElementById('actionBtns');
+  btns.innerHTML='';
+
+  const player = countries[playerKey];
+
+  if(!id){
+    info.innerHTML = `<strong>Ocean</strong> — unclaimed waters.`;
+    return;
+  }
+  const target = countries[id];
+  const isOwn = id===playerKey;
+  const isAlly = player.allies.has(id);
+
+  if(isOwn){
+    info.innerHTML = `<strong>Your territory</strong><br>Troops: ${Math.floor(player.troops)} | Defense bonus here: +${Math.floor(defense[cy*W+cx]*10)}%`;
+    const fb = document.createElement('button');
+    fb.className='act-btn act-btn-fortify';
+    fb.textContent='🛡️ Fortify (30 troops)';
+    fb.onclick=()=>fortify(cx,cy);
+    btns.appendChild(fb);
+  } else {
+    // Check adjacency to player territory
+    const adj = isAdjacentToPlayer(cx,cy);
+    info.innerHTML = `<strong>${target.name}</strong>${target.alive?'':' (eliminated)'}<br>Troops: ${Math.floor(target.troops)} | Territory: ${target.territory}${isAlly?' | 🤝 Ally':''}`;
+
+    if(target.alive && adj && !isAlly){
+      const ab = document.createElement('button');
+      ab.className='act-btn act-btn-attack';
+      ab.textContent='⚔️ Attack!';
+      ab.onclick=()=>attackCell(cx,cy);
+      btns.appendChild(ab);
+    }
+    if(target.alive && !isAlly && id!==playerKey){
+      const alb = document.createElement('button');
+      alb.className='act-btn act-btn-ally';
+      alb.textContent='🤝 Propose Alliance';
+      alb.onclick=()=>proposeAlliance(id);
+      btns.appendChild(alb);
+    }
+    if(target.alive && isAlly){
+      const db = document.createElement('button');
+      db.className='act-btn act-btn-donate';
+      db.textContent='🎁 Donate 50 troops';
+      db.onclick=()=>donate(id);
+      btns.appendChild(db);
+    }
+  }
+}
+
+function isAdjacentToPlayer(cx,cy){
+  const {grid,W,H,playerKey} = G;
+  const DIRS=[{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+  return DIRS.some(d=>{
+    const nx=cx+d.x,ny=cy+d.y;
+    return nx>=0&&nx<W&&ny>=0&&ny<H && grid[ny*W+nx]===playerKey;
+  });
+}
+
+// =====================================================================
+//  PLAYER ACTIONS
+// =====================================================================
+function attackCell(cx,cy){
+  const {grid,countries,playerKey,defense,W} = G;
+  const targetId = grid[cy*W+cx];
+  if(!targetId||targetId===playerKey) return;
+  const player = countries[playerKey];
+  const target = countries[targetId];
+  if(player.allies.has(targetId)){
+    addLog(`You can't attack your ally ${target.name}!`,'log-info');
+    return;
+  }
+  const cost = 5;
+  if(player.troops < cost+1){
+    addLog('Not enough troops to attack!','log-info');
+    return;
+  }
+  player.troops -= cost;
+  const defBonus = 1 + defense[cy*W+cx];
+  const attackPower = cost * (0.8 + Math.random()*0.4);
+  const defendPower = defBonus * (1 + Math.random()*0.3);
+  if(attackPower > defendPower){
+    // capture
+    grid[cy*W+cx] = playerKey;
+    player.territory++;
+    target.territory--;
+    defense[cy*W+cx] = 0;
+    addLog(`You captured a cell from ${target.name}!`,'log-capture');
+    checkEliminated(targetId);
+    checkWin();
+  } else {
+    addLog(`Attack on ${target.name} repelled!`,'log-attack');
+  }
+  showCellActions(cx,cy);
+}
+
+function fortify(cx,cy){
+  const {grid,countries,playerKey,defense,W} = G;
+  if(grid[cy*W+cx]!==playerKey) return;
+  const player = countries[playerKey];
+  if(player.troops < 30){
+    addLog('Need 30 troops to fortify!','log-info');
+    return;
+  }
+  player.troops -= 30;
+  defense[cy*W+cx] += 2;
+  addLog(`Cell fortified at (${cx},${cy}) — defense bonus +20%`,'log-info');
+  showCellActions(cx,cy);
+}
+
+function proposeAlliance(targetId){
+  const {countries,playerKey} = G;
+  const player = countries[playerKey];
+  const target = countries[targetId];
+  if(Math.random() < 0.7){
+    player.allies.add(targetId);
+    target.allies.add(playerKey);
+    addLog(`${target.name} accepted your alliance! 🤝`,'log-ally');
+  } else {
+    addLog(`${target.name} rejected your alliance proposal.`,'log-info');
+  }
+  updateUI();
+}
+
+function donate(targetId){
+  const {countries,playerKey} = G;
+  const player = countries[playerKey];
+  const target = countries[targetId];
+  if(player.troops < 50){
+    addLog('Need 50 troops to donate!','log-info');
+    return;
+  }
+  player.troops -= 50;
+  target.troops += 50;
+  addLog(`Donated 50 troops to ${target.name} 🎁`,'log-ally');
+  updateUI();
+}
+
+// =====================================================================
+//  BOT AI
+// =====================================================================
+function botAttack(){
+  const {grid,countries,playerKey,defense,W,H} = G;
+  const DIRS=[{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+
+  Object.values(countries).forEach(c=>{
+    if(!c.alive || c.id===playerKey) return;
+    if(c.troops < 15) return;
+    if(Math.random() > 0.4) return;
+
+    // Find enemy border cells
+    const borderCells = [];
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        if(grid[y*W+x]!==c.id) continue;
+        DIRS.forEach(d=>{
+          const nx=x+d.x,ny=y+d.y;
+          if(nx<0||nx>=W||ny<0||ny>=H) return;
+          const nid = grid[ny*W+nx];
+          if(nid && nid!==c.id && !c.allies.has(nid)){
+            borderCells.push({x:nx,y:ny,tid:nid});
+          }
+        });
+      }
+    }
+    if(borderCells.length===0) return;
+
+    // prefer weakest neighbor
+    borderCells.sort((a,b)=>countries[a.tid].troops - countries[b.tid].troops);
+    const pick = borderCells[Math.floor(Math.random()*Math.min(3,borderCells.length))];
+    if(!pick) return;
+
+    const target = countries[pick.tid];
+    const cost = 3;
+    c.troops -= cost;
+    const defBonus = 1 + defense[pick.y*W+pick.x];
+    const attackPower = cost*(0.9+Math.random()*0.3);
+    const defendPower = defBonus*(1+Math.random()*0.2);
+    if(attackPower>defendPower){
+      grid[pick.y*W+pick.x]=c.id;
+      c.territory++;
+      target.territory--;
+      defense[pick.y*W+pick.x]=0;
+      if(target.id===playerKey){
+        addLog(`${c.name} captured your cell! ⚠️`,'log-attack');
+      } else if(Math.random()<0.2){
+        addLog(`${c.name} captured a cell from ${target.name}`,'log-expand');
+      }
+      checkEliminated(pick.tid);
+      checkWin();
+    }
+  });
+}
+
+// =====================================================================
+//  ELIMINATION & WIN
+// =====================================================================
+function checkEliminated(id){
+  const {countries} = G;
+  const c = countries[id];
+  if(c.territory <= 0 && c.alive){
+    c.alive = false;
+    c.troops = 0;
+    addLog(`💀 ${c.name} has been eliminated!`,'log-eliminate');
+    // remove from alliances
+    Object.values(countries).forEach(other=>{
+      other.allies.delete(id);
+    });
+  }
+}
+
+function checkWin(){
+  const {countries,playerKey} = G;
+  const aliveOthers = Object.values(countries).filter(c=>c.alive && c.id!==playerKey);
+  const player = countries[playerKey];
+  if(!player.alive){
+    // player lost — just show defeat
+    addLog('You have been eliminated! Game over.','log-eliminate');
+    showGameOver(false);
+    return;
+  }
+  if(aliveOthers.length===0){
+    addLog('You conquered the entire map! 🏆','log-win');
+    showGameOver(true);
+  }
+}
+
+function showGameOver(won){
+  const overlay = document.getElementById('winOverlay');
+  if(won){
+    overlay.querySelector('h2').textContent='🏆 VICTORY!';
+    document.getElementById('winMsg').textContent='You conquered the map! Front Wars champion!';
+  } else {
+    overlay.querySelector('h2').textContent='💀 DEFEATED';
+    document.getElementById('winMsg').textContent='Your empire has fallen. Try again?';
+  }
+  overlay.style.display='flex';
+}
+
+// =====================================================================
+//  COUNTRY CLICK (from sidebar)
+// =====================================================================
+function clickCountry(id){
+  const {countries,playerKey,grid,W,H} = G;
+  const c = countries[id];
+  // Find the capital cell
+  if(G.phase==='combat'){
+    G.selectedX = c.sx;
+    G.selectedY = c.sy;
+    showCellActions(c.sx, c.sy);
+  }
+}
+
+// =====================================================================
+//  WAR LOG
+// =====================================================================
+function addLog(msg, cls='log-info'){
+  const wl = document.getElementById('warLog');
+  const entry = document.createElement('div');
+  entry.className='log-entry '+cls;
+  entry.textContent=msg;
+  wl.insertBefore(entry, wl.firstChild);
+  // keep max 50 entries
+  while(wl.children.length>50) wl.removeChild(wl.lastChild);
+}
+</script>
+</body>
+</html>
