@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Front — Territory Strategy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="game-wrapper">
+
+  <!-- MAIN CANVAS: terrain + territories -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- UI CANVAS: overlays drawn by game loop -->
+  <canvas id="uiCanvas"></canvas>
+
+  <!-- HTML OVERLAY: screens, menus, dialogs -->
+  <div id="overlay">
+    <div class="loading-spinner">Loading World Front…</div>
+  </div>
+
+  <!-- ======== HUD (shown during Phase 2) ======== -->
+  <div id="hud" style="display:none"></div>
+  <div id="leaderboard" style="display:none"></div>
+
+  <!-- ======== EXPANSION PROGRESS BAR ======== -->
+  <div id="expansionBar" style="display:none">
+    <div id="expansionLabel">Territory Expansion</div>
+    <div style="background:#1a2a4a;border-radius:3px;height:6px;width:100%">
+      <div id="expansionBarFill"></div>
+    </div>
+  </div>
+
+  <!-- ======== BUILD MENU ======== -->
+  <div id="buildMenu"></div>
+
+  <!-- ======== TROOP SLIDER ======== -->
+  <div id="troopSlider">
+    <h3 id="troopSliderTitle">⚔️ Launch Attack</h3>
+    <p id="troopSliderDesc">Choose how many troops to send.</p>
+    <input type="range" id="troopSliderInput" min="0" max="100" value="50" step="1">
+    <div id="troopSliderCount">Sending 0 troops</div>
+    <div class="slider-btns">
+      <button id="troopAttackBtn">⚔️ ATTACK</button>
+      <button id="troopCancelBtn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ======== ALLIANCE BETRAYAL CONFIRM ======== -->
+  <div id="betrayalConfirm">
+    <h3>⚠️ Break Alliance?</h3>
+    <p id="betrayalText"></p>
+    <div class="betray-btns">
+      <button id="betrayYesBtn">⚔️ Attack Anyway</button>
+      <button id="betrayNoBtn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ======== TOOLTIP ======== -->
+  <div id="tooltip"></div>
+
+  <!-- ======== NOTIFICATION ======== -->
+  <div id="notification"></div>
+
+</div>
+
+<!-- ======== SCRIPTS ======== -->
+<!-- TopoJSON client library -->
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+
+<!-- Game modules (order matters) -->
+<script src="maps.js"></script>
+<script src="bots.js"></script>
+<script src="ui.js"></script>
+<script src="game.js"></script>
+
+<script>
+  // Boot
+  document.addEventListener('DOMContentLoaded', () => {
+    WFGame.init();
+  });
+</script>
+
+</body>
+</html>
