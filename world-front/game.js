@@ -854,6 +854,9 @@ const WFGame = (function() {
 
     if (state.screen === 'playerSetup') {
       handlePlayerPlacement(x, y);
+    } else if (state.screen === 'countdown') {
+      // ignore clicks during countdown
+      return;
     } else if (state.screen === 'war') {
       handleWarClick(x, y);
     }
@@ -861,10 +864,14 @@ const WFGame = (function() {
 
   function handlePlayerPlacement(x, y) {
     const idx = pxIndex(x, y);
-    if (!state.landMask[idx]) {
+    if (!state.landMask || !state.landMask[idx]) {
       notify('Click on land to place your starting position!', '#f66');
       return;
     }
+
+    // Lock out further clicks
+    state.screen = 'countdown';
+
     const [lon, lat] = unproject(x, y);
     state.playerLat = lat;
     state.playerLon = lon;
@@ -887,8 +894,13 @@ const WFGame = (function() {
     }
 
     buildColorCache(state.entities);
-    overlay.innerHTML = '';
-    startExpansion();
+
+    // Show all starting dots, then count down 5 seconds
+    drawStartingDots();
+    startCountdown(5, () => {
+      uiCtx.clearRect(0, 0, W, H);
+      startExpansion();
+    });
   }
 
   function handleWarClick(x, y) {
@@ -1067,21 +1079,92 @@ const WFGame = (function() {
   function onStartGame() {
     state.screen = 'playerSetup';
     overlay.innerHTML = '';
-    // Re-render the full map in background
+
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, W, H);
-    drawCountriesToCanvas(ctx, W, H, state.mapName, CONTINENT_COUNTRIES[state.mapName]);
-    // Compute land mask
+
     computeLandMask();
     initTerritoryCanvas();
-    // Draw land mask countries over territory canvas
     renderTerritory();
-    drawCountriesToCanvas(ctx, W, H, state.mapName, CONTINENT_COUNTRIES[state.mapName]);
+
+    // Draw country borders on uiCanvas overlay only (no glitch artifacts)
+    drawBorderOverlay();
+
     WFUI.renderPlayerSetup(state, overlay, (name, color) => {
       state.playerName  = name || 'Player';
       state.playerColor = color;
       buildColorCache(state.entities);
     });
+  }
+
+  // Draw crisp country borders on the transparent uiCanvas overlay
+  function drawBorderOverlay() {
+    if (!state.worldData) return;
+    uiCtx.clearRect(0, 0, W, H);
+    const countries = topojson.feature(state.worldData, state.worldData.objects.countries);
+    const filterSet = CONTINENT_COUNTRIES[state.mapName];
+    uiCtx.strokeStyle = 'rgba(80,130,200,0.55)';
+    uiCtx.lineWidth   = 0.6;
+    for (const feature of countries.features) {
+      const id = parseInt(feature.id, 10);
+      if (filterSet && !filterSet.has(id)) continue;
+      const g = feature.geometry;
+      if (!g) continue;
+      const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+      for (const poly of polys) {
+        for (const ring of poly) {
+          uiCtx.beginPath();
+          let first = true;
+          for (const [lon, lat] of ring) {
+            const [px, py] = project(lon, lat);
+            if (first) { uiCtx.moveTo(px, py); first = false; }
+            else uiCtx.lineTo(px, py);
+          }
+          uiCtx.closePath();
+          uiCtx.stroke();
+        }
+      }
+    }
+  }
+
+  // Show all starting dots on the map before expansion
+  function drawStartingDots() {
+    uiCtx.clearRect(0, 0, W, H);
+    for (const e of state.entities) {
+      if (e.startPx < 0) continue;
+      const x = e.startPx % W;
+      const y = Math.floor(e.startPx / W);
+      // Glow ring
+      uiCtx.beginPath();
+      uiCtx.arc(x, y, 7, 0, Math.PI * 2);
+      uiCtx.fillStyle = e.color + '44';
+      uiCtx.fill();
+      // Core dot
+      uiCtx.beginPath();
+      uiCtx.arc(x, y, 3.5, 0, Math.PI * 2);
+      uiCtx.fillStyle = e.color;
+      uiCtx.fill();
+      // White center
+      uiCtx.beginPath();
+      uiCtx.arc(x, y, 1.2, 0, Math.PI * 2);
+      uiCtx.fillStyle = '#ffffff';
+      uiCtx.fill();
+    }
+  }
+
+  // 5-4-3-2-1 countdown overlay then fire onDone
+  function startCountdown(n, onDone) {
+    if (n <= 0) {
+      overlay.innerHTML = '';
+      overlay.style.pointerEvents = 'none';
+      onDone();
+      return;
+    }
+    overlay.style.pointerEvents = 'none';
+    overlay.innerHTML = `<div style="font-size:6rem;font-weight:900;color:#fff;
+      text-shadow:0 0 40px rgba(100,180,255,0.9),0 0 10px rgba(100,180,255,0.5);
+      pointer-events:none;user-select:none">${n}</div>`;
+    setTimeout(() => startCountdown(n - 1, onDone), 1000);
   }
 
   function startNewGame() {

@@ -129,15 +129,13 @@ const WFUI = (function() {
     }
     if (WFUI._setupState) WFUI._setupState.playerName = name;
     if (WFUI._setupCb) WFUI._setupCb(name, WFUI._setupState.playerColor);
-    // Collapse panel to show map
-    const panel = document.getElementById('playerSetupPanel');
-    if (panel) {
-      panel.style.maxHeight = '60px';
-      panel.style.overflow  = 'hidden';
-      panel.style.transition = 'max-height 0.3s';
-      panel.innerHTML = `<p style="text-align:center;color:#4af;font-size:0.85rem;letter-spacing:2px;padding:8px">
-        ✅ ${name} — Click on land to place your starting position!
-      </p>`;
+    // Make overlay pass-through so map clicks reach the canvas
+    const overlayEl = document.getElementById('overlay');
+    if (overlayEl) {
+      overlayEl.style.pointerEvents = 'none';
+      overlayEl.innerHTML = `<div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,10,30,0.92);border:1px solid rgba(68,170,255,0.5);padding:8px 28px;border-radius:20px;color:#4af;font-size:0.9rem;font-weight:600;white-space:nowrap">
+        🎯 Click anywhere on land to place your start!
+      </div>`;
     }
   }
 
