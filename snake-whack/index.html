@@ -73,7 +73,7 @@ function init() {
   nextDir = {x:1,y:0};
   score = 0;
   missed = 0;
-  speed = 220;
+  speed = 180;
   running = true;
   spawnMole();
   updateStats();
@@ -116,8 +116,8 @@ function tick() {
     clearTimeout(moleTimer);
     score += 10;
     // Speed up slightly
-    if(score % 50 === 0) {
-      speed = Math.max(70, speed - 10);
+    if(score % 100 === 0) {
+      speed = Math.max(100, speed - 7);
       clearInterval(gameLoop);
       gameLoop = setInterval(tick, speed);
     }
