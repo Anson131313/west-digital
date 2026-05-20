@@ -63,7 +63,7 @@ const ctx = canvas.getContext('2d');
 const COLS = 14, ROWS = 14;
 const CELL = canvas.width / COLS;
 const MAX_MISS = 5;
-const MOLE_BASE_TIME = 5000; // ms mole stays up at start
+const MOLE_BASE_TIME = 9000; // ms mole stays up at start
 
 let snake, dir, nextDir, score, missed, mole, moleTimer, gameLoop, speed, running;
 
@@ -90,7 +90,7 @@ function spawnMole() {
   mole = pos;
   mole.born = Date.now();
   // Timer scales with speed — slower snake = more time to reach mole, min 1500ms
-  const moleTime = Math.max(1500, MOLE_BASE_TIME - score * 5 + (speed - 220) * 15);
+  const moleTime = Math.max(1500, MOLE_BASE_TIME - score * 4 + (speed - 220) * 15);
   mole.timeAllowed = moleTime;
   moleTimer = setTimeout(() => {
     missed++;
@@ -152,12 +152,19 @@ function draw() {
   ctx.fillStyle = pct > 0.5 ? '#00d4ff' : pct > 0.25 ? '#f59e0b' : '#ef4444';
   ctx.fillRect(mole.x*CELL, mole.y*CELL + CELL - 4, barW, 4);
 
-  // Mole
+  // Mole with pop-in animation
+  const moleAge = Date.now() - mole.born;
+  const APPEAR_MS = 180;
+  const moleScale = moleAge < APPEAR_MS ? (moleAge / APPEAR_MS) : 1;
   const bounce = Math.sin(Date.now()/150) * 2;
+  ctx.save();
+  ctx.translate(mole.x*CELL + CELL/2, mole.y*CELL + CELL/2 + bounce);
+  ctx.scale(moleScale, moleScale);
   ctx.font = `${CELL-4}px serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('🐹', mole.x*CELL + CELL/2, mole.y*CELL + CELL/2 + bounce);
+  ctx.fillText('🐹', 0, 0);
+  ctx.restore();
 
   // Snake body
   snake.forEach((seg, i) => {
