@@ -141,7 +141,19 @@ const WFGame = (function() {
       const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
       for (const poly of polys) {
         for (const ring of poly) {
-          drawPolygon(ring);
+          let prevLon = null;
+          targetCtx.beginPath();
+          for (const [lon, lat] of ring) {
+            if (prevLon !== null && Math.abs(lon - prevLon) > 90) {
+              targetCtx.closePath(); targetCtx.fill(); targetCtx.stroke();
+              targetCtx.beginPath();
+            }
+            const [px, py] = proj(lon, lat);
+            if (prevLon === null || Math.abs(lon - prevLon) > 90) targetCtx.moveTo(px, py);
+            else targetCtx.lineTo(px, py);
+            prevLon = lon;
+          }
+          targetCtx.closePath();
           targetCtx.fill();
           targetCtx.stroke();
         }
@@ -187,7 +199,23 @@ const WFGame = (function() {
       if (!g) continue;
       const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
       for (const poly of polys) {
-        for (const ring of poly) drawPoly(ring);
+        // Use ring drawing with antimeridian-wrap guard
+        for (const ring of poly) {
+          let prevLon = null;
+          offCtx.beginPath();
+          for (const [lon, lat] of ring) {
+            if (prevLon !== null && Math.abs(lon - prevLon) > 90) {
+              offCtx.closePath(); offCtx.fill();
+              offCtx.beginPath();
+            }
+            const [px, py] = project(lon, lat);
+            if (prevLon === null || Math.abs(lon - prevLon) > 90) offCtx.moveTo(px, py);
+            else offCtx.lineTo(px, py);
+            prevLon = lon;
+          }
+          offCtx.closePath();
+          offCtx.fill();
+        }
       }
     }
 
@@ -1045,17 +1073,22 @@ const WFGame = (function() {
         const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
         for (const poly of polys) {
           for (const ring of poly) {
+            let prevLon = null;
             mCtx.beginPath();
-            let first = true;
             for (const [lon, lat] of ring) {
+              if (prevLon !== null && Math.abs(lon - prevLon) > 90) {
+                mCtx.closePath();
+                mCtx.fillStyle = '#3a5a8a'; mCtx.strokeStyle = '#0a0e1a'; mCtx.lineWidth = 0.5;
+                mCtx.fill(); mCtx.stroke();
+                mCtx.beginPath();
+              }
               const [px, py] = proj(lon, lat);
-              if (first) { mCtx.moveTo(px, py); first = false; }
-              else         mCtx.lineTo(px, py);
+              if (prevLon === null || Math.abs(lon - prevLon) > 90) mCtx.moveTo(px, py);
+              else mCtx.lineTo(px, py);
+              prevLon = lon;
             }
             mCtx.closePath();
-            mCtx.fillStyle   = '#3a5a8a';
-            mCtx.strokeStyle = '#0a0e1a';
-            mCtx.lineWidth   = 0.5;
+            mCtx.fillStyle = '#3a5a8a'; mCtx.strokeStyle = '#0a0e1a'; mCtx.lineWidth = 0.5;
             mCtx.fill();
             mCtx.stroke();
           }
@@ -1093,8 +1126,25 @@ const WFGame = (function() {
     WFUI.renderPlayerSetup(state, overlay, (name, color) => {
       state.playerName  = name || 'Player';
       state.playerColor = color;
-      buildColorCache(state.entities);
+      // buildColorCache is called later in handlePlayerPlacement when entities are populated
     });
+  }
+
+  // Draw a polygon ring while skipping antimeridian-wrap segments
+  // (prevents horizontal glitch lines across the map)
+  function drawRingNoWrap(targetCtx, ring, projFn) {
+    let prevLon = null;
+    let first = true;
+    for (const [lon, lat] of ring) {
+      if (prevLon !== null && Math.abs(lon - prevLon) > 90) {
+        // Antimeridian crossing detected — lift pen to avoid wrap-around line
+        first = true;
+      }
+      const [px, py] = projFn(lon, lat);
+      if (first) { targetCtx.moveTo(px, py); first = false; }
+      else         targetCtx.lineTo(px, py);
+      prevLon = lon;
+    }
   }
 
   // Draw crisp country borders on the transparent uiCanvas overlay
@@ -1114,13 +1164,7 @@ const WFGame = (function() {
       for (const poly of polys) {
         for (const ring of poly) {
           uiCtx.beginPath();
-          let first = true;
-          for (const [lon, lat] of ring) {
-            const [px, py] = project(lon, lat);
-            if (first) { uiCtx.moveTo(px, py); first = false; }
-            else uiCtx.lineTo(px, py);
-          }
-          uiCtx.closePath();
+          drawRingNoWrap(uiCtx, ring, project);
           uiCtx.stroke();
         }
       }
